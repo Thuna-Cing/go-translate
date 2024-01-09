@@ -612,11 +612,22 @@ Other operations in the childframe buffer, just like in 'gts-buffer-render'.")
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map minibuffer-local-map)
     (define-key map "\C-g" #'top-level)
+    (define-key map "\M-g" #'gts-prompt-picker-pick)
     (define-key map "\C-n" #'gts-prompt-picker-next-path)
     (define-key map "\C-p" (lambda () (interactive) (gts-prompt-picker-next-path t)))
     (define-key map "\C-l" #'delete-minibuffer-contents)
     map)
   "Minibuffer keymap used when prompt user input.")
+
+(defun gts-prompt-picker-read-path ()
+  (let* ((text (minibuffer-contents))
+         (from (completing-read "From: " (delete-dups (mapcar 'car gts-translate-list))))
+         (to (completing-read
+              (format "From %s to: " from)
+              (cl-loop for (lang1 . lang2) in gts-translate-list
+                       when (equal from lang1)
+                       append (ensure-list lang2)))))
+    (cons from to)))
 
 (defun gts-prompt-picker-next-path (&optional backwardp)
   "Pick next available translate path.
@@ -629,6 +640,9 @@ If BACKWARDP is t, then pick the previous one."
     (gts-prompt-picker-pick text path)))
 
 (defun gts-prompt-picker-pick (&optional text path)
+  (interactive
+   (list (minibuffer-contents)
+         (gts-prompt-picker-read-path)))
   (setq gts-picker-current-path path)
   (let* ((enable-recursive-minibuffers t)
          (minibuffer-allow-text-properties t)
